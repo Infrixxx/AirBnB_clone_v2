@@ -2,7 +2,7 @@
 """
 Deletes out-of-date archives
 fab -f 100-clean_web_static.py do_clean:number=2
-    -i ssh-key -u ubuntu > /dev/null 2>&1
+    -i ~/.ssh/school -u ubuntu > /dev/null 2>&1
 """
 
 import os
@@ -30,3 +30,4 @@ def do_clean(number=0):
         archives = [a for a in archives if "web_static_" in a]
         [archives.pop() for i in range(number)]
         [run("rm -rf ./{}".format(a)) for a in archives]
+
