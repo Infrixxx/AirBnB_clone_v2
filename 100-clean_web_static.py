@@ -20,13 +20,15 @@ def do_clean(number=0):
     """
     number = int(number)
 
-    archives = sorted(os.listdir("versions"))
-    [archives.pop() for i in range(number)]
-    with lcd("versions"):
-        [local("rm ./{}".format(a)) for a in archives]
+    # Delete local archives
+    local_archives = sorted(os.listdir("versions"))
+    [local("rm ./versions/{}".format(a)) for a in local_archives[:-number]]
 
+    # Delete remote archives on both web servers
     with cd("/data/web_static/releases"):
-        archives = run("ls -tr").split()
-        archives = [a for a in archives if "web_static_" in a]
-        [archives.pop() for i in range(number)]
-        [run("rm -rf ./{}".format(a)) for a in archives]
+        remote_archives = run("ls -tr").split()
+        remote_archives = [a for a in remote_archives if "web_static_" in a]
+        [run("rm -rf ./{}".format(a)) for a in remote_archives[:-number]]
+
+# Run the script with the given number of archives to keep
+do_clean(2)
