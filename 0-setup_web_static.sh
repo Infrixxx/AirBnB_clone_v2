@@ -1,31 +1,41 @@
 #!/usr/bin/env bash
-# Script that sets up web servers for the deployment of web_static
+# Sets up a web server for deployment of web_static.
 
-# Update and install Nginx
-sudo apt-get update
-sudo apt-get -y install nginx
-sudo ufw allow 'Nginx HTTP'
+# Update package lists and install Nginx
+apt-get update
+apt-get install -y nginx
 
-# Create directory structure and HTML file
-sudo mkdir -p /data/web_static/releases/test/
-sudo mkdir -p /data/web_static/shared/
-echo "<html>
-  <head>
-  </head>
-  <body>
-    Holberton School
-  </body>
-</html>" | sudo tee /data/web_static/releases/test/index.html > /dev/null
+# Create necessary directories with appropriate permissions
+mkdir -p /data/web_static/{releases/test,shared}
+chown -R www-data:www-data /data/web_static
 
-# Create symbolic link
-sudo ln -sf /data/web_static/releases/test/ /data/web_static/current
+# Add a test index.html file
+echo "Holberton School" > /data/web_static/releases/test/index.html
 
-# Set ownership
-sudo chown -R ubuntu:ubuntu /data/
+# Create a symbolic link to the current release
+ln -sf /data/web_static/releases/test/ /data/web_static/current
 
-# Update Nginx configuration
-nginx_config_snippet="location /hbnb_static { alias /data/web_static/current/; }"
-sudo bash -c "echo '$nginx_config_snippet' >> /etc/nginx/sites-enabled/default"
+# Configure Nginx
+cat << EOF > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    add_header X-Served-By $hostname;
 
-# Restart Nginx
-sudo service nginx restart
+    # Directly serve static content from the 'current' directory
+    root /data/web_static/current;
+    index index.html index.htm;
+
+    location /redirect_me {
+        return 301 http://github.com/besthor;
+    }
+
+    error_page 404 /404.html;
+    location /404 {
+        internal;
+    }
+}
+EOF
+
+# Restart Nginx with error checking
+service nginx restart || systemctl status nginx.service
