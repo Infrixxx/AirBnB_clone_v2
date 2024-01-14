@@ -1,27 +1,31 @@
 #!/usr/bin/env bash
-# script that sets up web servers for the deployment of web_static
+# Script that sets up web servers for the deployment of web_static
+
+# Update and install Nginx
 sudo apt-get update
 sudo apt-get -y install nginx
 sudo ufw allow 'Nginx HTTP'
 
-sudo mkdir -p /data/
-sudo mkdir -p /data/web_static/
-sudo mkdir -p /data/web_static/releases/
-sudo mkdir -p /data/web_static/shared/
+# Create directory structure and HTML file
 sudo mkdir -p /data/web_static/releases/test/
-sudo touch /data/web_static/releases/test/index.html
-sudo echo "<html>
+sudo mkdir -p /data/web_static/shared/
+echo "<html>
   <head>
   </head>
   <body>
     Holberton School
   </body>
-</html>" | sudo tee /data/web_static/releases/test/index.html
+</html>" | sudo tee /data/web_static/releases/test/index.html > /dev/null
 
-sudo ln -s -f /data/web_static/releases/test/ /data/web_static/current
+# Create symbolic link
+sudo ln -sf /data/web_static/releases/test/ /data/web_static/current
 
+# Set ownership
 sudo chown -R ubuntu:ubuntu /data/
 
-sudo sed -i '/listen 80 default_server/a location /hbnb_static { alias /data/web_static/current/;}' /etc/nginx/sites-enabled/default
+# Update Nginx configuration
+nginx_config_snippet="location /hbnb_static { alias /data/web_static/current/; }"
+sudo bash -c "echo '$nginx_config_snippet' >> /etc/nginx/sites-enabled/default"
 
+# Restart Nginx
 sudo service nginx restart
