@@ -1,16 +1,18 @@
-from fabric.api import env, put, run, task
+#!/usr/bin/python3
+"""
+Fabric script based on the file 1-pack_web_static.py that distributes an
+archive to the web servers
+"""
 
+from fabric.api import put, run, env
+from os.path import exists
 env.hosts = ["54.236.43.143", "54.160.124.186"]
 
 
-@task
-def do_deploy():
-    """Distribute an archive to the web servers."""
-    archive_path = env.archive_path
-    if not archive_path:
-        print("Error: Archive path not provided.")
+def do_deploy(archive_path):
+    """distributes an archive to the web servers"""
+    if exists(archive_path) is False:
         return False
-
     try:
         file_n = archive_path.split("/")[-1]
         no_ext = file_n.split(".")[0]
@@ -23,8 +25,6 @@ def do_deploy():
         run('rm -rf {}{}/web_static'.format(path, no_ext))
         run('rm -rf /data/web_static/current')
         run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
-        print("Deployment successful!")
         return True
-    except Exception as e:
-        print(f"Error: {e}")
+    except:
         return False
