@@ -1,33 +1,52 @@
 #!/usr/bin/python3
 """
-Deletes out-of-date archives
-fab -f 100-clean_web_static.py do_clean:number=2
-   -i ssh-key -u ubuntu > /dev/null 2>&1
+Deletes out-of-date archives on local and remote servers.
+
+Usage:
+  fab -f 100-clean_web_static.py do_clean:number=2 -i <ssh-key> -u <username>
+
+Example:
+  fab -f 100-clean_web_static.py do_clean:number=2 -i ~/.ssh/school -u ubuntu
 """
 
 import os
 from fabric.api import *
+import logging
 
-env.hosts = ['54.236.43.143', '54.160.124.186']
+# Set logging level for debugging
+logging.basicConfig(level=logging.DEBUG)
 
-@task  # Add the @task decorator here
+env.hosts = ['54.236.43.143', '54.160.124.186']  # Replace with your server IPs
+
+@task
 def do_clean(number=0):
-    """Delete out-of-date archives.
+    """Deletes out-of-date archives, keeping the specified number of most recent versions.
+
     Args:
-        number (int): The number of archives to keep.
-        If number is 0 or 1, keeps only the most recent archive. If
-        number is 2, keeps the most and second-most recent archives,
-        etc.
+        number (int): The number of archives to keep (default: 0, keeps only the most recent).
     """
-    number = 1 if int(number) == 0 else int(number)
 
-    archives = sorted(os.listdir("versions"))
-    [archives.pop() for i in range(number)]
+    logging.info("Starting archive cleanup...")
+
+    number = 1 if int(number) == 0 else int(number)  # Ensure at least one archive is kept
+
+    # Clean local archives
     with lcd("versions"):
-        [local("rm ./{}".format(a)) for a in archives]
+        archives = sorted(os.listdir("."))
+        for _ in range(number):
+            archives.pop()  # Remove the most recent archives
+        for archive in archives:
+            local("rm ./{}".format(archive))
+            logging.info("Deleted local archive: {}".format(archive))
 
+    # Clean remote archives
     with cd("/data/web_static/releases"):
         archives = run("ls -tr").split()
-        archives = [a for a in archives if "web_static_" in a]
-        [archives.pop() for i in range(number)]
-        [run("rm -rf ./{}".format(a)) for a in archives]
+        archives = [a for a in archives if "web_static_" in a]  # Filter relevant archives
+        for _ in range(number):
+            archives.pop()
+        for archive in archives:
+            run("rm -rf ./{}".format(archive))
+            logging.info("Deleted remote archive: {}".format(archive))
+
+    logging.info("Archive cleanup completed.")
