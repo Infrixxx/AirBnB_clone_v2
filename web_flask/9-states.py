@@ -1,29 +1,39 @@
-from flask import Flask, render_template
+#!/usr/bin/python3
+"""Starts a Flask web application.
+
+The application listens on 0.0.0.0, port 5000.
+Routes:
+    /states: HTML page with a list of all State objects in DBStorage.
+    /states/<id>: HTML page with information about a specific State.
+"""
 from models import storage
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-@app.teardown_appcontext
-def close_db_session(exception=None):
-    storage.close()
 
-@app.route('/')
-def index():
+@app.route("/states", strict_slashes=False)
+def states_list():
+    """Displays an HTML page with a list of all State objects in DBStorage."""
     states = storage.all("State")
     return render_template("9-states.html", states=states)
 
-@app.route('/states/<state_id>')
-def state_details(state_id):
-    state = storage.get("State", state_id)
+
+@app.route("/states/<id>", strict_slashes=False)
+def state_info(id):
+    """Displays an HTML page with information about a specific State."""
+    state = storage.get("State", id)
     if state:
-        cities = (
-            state.cities  # Use cities relationship for DBStorage
-            if storage._USER_DB == "db"
-            else state.cities()  # Use cities getter for FileStorage
-        )
-        return render_template("9-states.html", state=state, cities=cities)
+        return render_template("9-states.html", state=state)
     else:
-        return render_template("9-states.html", state=None), 404
+        return render_template("9-states.html", not_found=True)
+
+
+@app.teardown_appcontext
+def teardown(exc):
+    """Remove the current SQLAlchemy session."""
+    storage.close()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
